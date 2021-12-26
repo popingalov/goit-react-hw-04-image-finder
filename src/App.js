@@ -18,50 +18,47 @@ function App() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (page === 1) {
-      return;
-    }
-    apiArray(searchForm, page).then(res => {
-      setArrayImage(e => [...e, ...res]);
-      setStatus('resolved');
-      document
-        .getElementById('scroll')
-        .scrollIntoView({ block: 'center', behavior: 'smooth' });
-    });
-  }, [page]);
-  useEffect(() => {
-    if (searchForm === '') {
-      return;
-    }
-    setPage(1);
-    setStatus('pending');
-    setArrayImage([]);
-    apiArray(searchForm, 1)
-      .then(res => {
-        if (res.length > 0) {
-          setArrayImage(res);
-          setStatus('resolved');
-          return;
-        }
-        setError(
-          `По вашему запросу ${searchForm} небыло совпадений, крутите барабан`,
-        );
-        setStatus('rejected');
-        setTimeout(() => {
-          setStatus('idle');
-        }, 2000);
-      })
-      .catch(error => () => {
-        setError(`Чёт пошло не так: ${error.message}`);
-        setStatus('rejected');
-        setTimeout(() => {
-          setStatus('idle');
-        }, 2000);
+    if (page !== 1) {
+      apiArray(searchForm, page).then(res => {
+        setArrayImage(e => [...e, ...res]);
+        setStatus('resolved');
+        document
+          .getElementById('scroll')
+          .scrollIntoView({ block: 'center', behavior: 'smooth' });
       });
-  }, [searchForm]);
+      return;
+    }
+    if (searchForm !== '') {
+      setStatus('pending');
+      setArrayImage([]);
+      apiArray(searchForm, 1)
+        .then(res => {
+          if (res.length > 0) {
+            setArrayImage(res);
+            setStatus('resolved');
+            return;
+          }
+          setError(
+            `По вашему запросу ${searchForm} небыло совпадений, крутите барабан`,
+          );
+          setStatus('rejected');
+          setTimeout(() => {
+            setStatus('idle');
+          }, 2000);
+        })
+        .catch(error => () => {
+          setError(`Чёт пошло не так: ${error.message}`);
+          setStatus('rejected');
+          setTimeout(() => {
+            setStatus('idle');
+          }, 2000);
+        });
+    }
+  }, [searchForm, page]);
 
   const saveSearch = searchForm => {
     setSearchForm(searchForm);
+    setPage(1);
   };
   const apiArray = (formRes, page) => {
     return Api(formRes, page);

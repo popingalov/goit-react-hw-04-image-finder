@@ -1,47 +1,37 @@
 import PropTypes from 'prop-types';
-import React, { Component } from 'react';
+import { useState } from 'react';
 import s from './SearchForm.module.css';
-export default class SearchForm extends Component {
-  state = {
-    searchForm: '',
-  };
+export default function SearchForm({ saveSubmit }) {
+  const [searchForm, setSearchForm] = useState('');
 
-  SaveValue = e => {
-    this.setState({
-      searchForm: e.target.value,
-    });
-  };
-
-  Submit = e => {
+  const Submit = e => {
     e.preventDefault();
-    if (this.state.searchForm.trim() === '') {
+    if (searchForm.trim() === '') {
       alert('Введите текст');
-      this.setState({ searchForm: '' });
+      setSearchForm('');
       return;
     }
-    this.props.saveSubmit(this.state.searchForm.toLowerCase());
-    this.setState({ searchForm: '' });
+    saveSubmit(searchForm.toLowerCase());
+    setSearchForm('');
   };
 
-  render() {
-    return (
-      <form className={s.SearchForm} onSubmit={this.Submit}>
-        <button type="submit" className={s.SearchForm_button}>
-          <span className={s.SearchForm_button_label}>Search</span>
-        </button>
+  return (
+    <form className={s.SearchForm} onSubmit={Submit}>
+      <button type="submit" className={s.SearchForm_button}>
+        <span className={s.SearchForm_button_label}>Search</span>
+      </button>
 
-        <input
-          className={s.SearchForm_input}
-          type="text"
-          autoComplete="off"
-          autoFocus
-          placeholder="Search images and photos"
-          value={this.state.searchForm}
-          onChange={this.SaveValue}
-        />
-      </form>
-    );
-  }
+      <input
+        className={s.SearchForm_input}
+        type="text"
+        autoComplete="off"
+        autoFocus
+        placeholder="Search images and photos"
+        value={searchForm}
+        onChange={e => setSearchForm(e.target.value)}
+      />
+    </form>
+  );
 }
 
 SearchForm.propTypes = {
