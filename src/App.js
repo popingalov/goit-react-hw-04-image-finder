@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { useState, useEffect } from 'react';
 import SearchBar from 'components/SearchBar/SearchBar';
 import ImageGallery from 'components/ImageGallery/ImageGallery';
 import Modal from 'components/Modal/Modal';
@@ -8,113 +8,98 @@ import Spiner from 'components/ImageGallery/status/spiner/Spiner';
 import Rejected from 'components/ImageGallery/status/Rejected';
 /* import { ToastContainer } from 'react-toastify'; */
 import Api from './service/Api';
-class App extends Component {
-  state = {
-    searchForm: '',
-    showModal: false,
-    largeUrl: null,
-    page: 1,
-    status: 'idle',
-    arrayImage: [],
-    error: '',
-  };
+function App() {
+  const [searchForm, setSearchForm] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [largeUrl, setLargeUrl] = useState(null);
+  const [page, setPage] = useState(1);
+  const [status, setStatus] = useState('idle');
+  const [arrayImage, setArrayImage] = useState([]);
+  const [error, setError] = useState('');
 
-  saveSearch = searchForm => {
-    this.setState({
-      searchForm,
-    });
-  };
-
-  componentDidUpdate(prevProps, prevState) {
-    const { searchForm, page, status } = this.state;
-
-    if (prevState.page !== page) {
-      this.apiArray(searchForm, page).then(res => {
-        this.setState(prevState => ({
-          arrayImage: [...prevState.arrayImage, ...res],
-          status: 'resolved',
-        }));
-        document
-          .getElementById('scroll')
-          .scrollIntoView({ block: 'center', behavior: 'smooth' });
-      });
-
+  useEffect(() => {
+    if (page === 1) {
       return;
     }
-    if (prevState.searchForm !== searchForm) {
-      this.setState({ status: 'pending', arrayImage: [] });
-      this.apiArray(searchForm, 1)
-        .then(res => {
-          if (res.length > 0) {
-            this.setState({
-              arrayImage: res,
-              status: 'resolved',
-            });
-            return;
-          }
-          return Promise.reject(
-            new Error(
-              `По вашему запросу ${searchForm} небыло совпадений, крутите барабан`,
-            ),
-          );
-        })
-        .catch(error => this.setState({ error, status: 'rejected' }));
+    apiArray(searchForm, page).then(res => {
+      setArrayImage(e => [...e, ...res]);
+      setStatus('resolved');
+      document
+        .getElementById('scroll')
+        .scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+  }, [page]);
+  useEffect(() => {
+    if (searchForm === '') {
+      return;
     }
-    if (status === 'rejected') {
-      setTimeout(() => {
-        this.setState({ status: 'idle' });
-      }, 2000);
-    }
-  }
+    setPage(1);
+    setStatus('pending');
+    setArrayImage([]);
+    apiArray(searchForm, 1)
+      .then(res => {
+        if (res.length > 0) {
+          setArrayImage(res);
+          setStatus('resolved');
+          return;
+        }
+        setError(
+          `По вашему запросу ${searchForm} небыло совпадений, крутите барабан`,
+        );
+        setStatus('rejected');
+        setTimeout(() => {
+          setStatus('idle');
+        }, 2000);
+      })
+      .catch(error => () => {
+        setError(`Чёт пошло не так: ${error.message}`);
+        setStatus('rejected');
+        setTimeout(() => {
+          setStatus('idle');
+        }, 2000);
+      });
+  }, [searchForm]);
 
-  apiArray = (formRes, page) => {
+  const saveSearch = searchForm => {
+    setSearchForm(searchForm);
+  };
+  const apiArray = (formRes, page) => {
     return Api(formRes, page);
   };
-  morePage = () => {
-    this.setState(prevState => ({
-      status: 'pending',
-      page: prevState.page + 1,
-    }));
+  const morePage = () => {
+    setStatus('pending');
+    setPage(p => p + 1);
   };
-  startStatus = () => {
-    this.setState({
-      status: 'idle',
-    });
+  const startStatus = () => {
+    setStatus('idle');
   };
 
-  takeLarge = largeUrl => {
-    this.setState({ largeUrl });
-    this.toggleModal();
+  const takeLarge = largeUrl => {
+    setLargeUrl(largeUrl);
+    toggleModal();
   };
-  toggleModal = () => {
-    this.setState(({ showModal }) => ({
-      showModal: !showModal,
-    }));
+  const toggleModal = () => {
+    setShowModal(!showModal);
   };
-  render() {
-    const { showModal, largeUrl, status, arrayImage, error } = this.state;
 
-    return (
-      <div>
-        <SearchBar saveSubmit={this.saveSearch} />
-        <ImageGallery
-          returnUrl={this.takeLarge}
-          arrayImage={arrayImage}
-          resetStatus={this.startStatus}
-        />
-        {showModal && (
-          <Modal url={largeUrl.largeImageURL} toggle={this.toggleModal} />
-        )}
-        {arrayImage[0]?.loadMore > 12 && (
-          <Button morePage={this.morePage} total={arrayImage[0].loadMore} />
-        )}
-        {status === 'idle' && <Idle />}
+  return (
+    <div>
+      <SearchBar saveSubmit={saveSearch} />
+      <ImageGallery
+        returnUrl={takeLarge}
+        arrayImage={arrayImage}
+        resetStatus={startStatus}
+      />
+      {showModal && <Modal url={largeUrl.largeImageURL} toggle={toggleModal} />}
+      {arrayImage[0]?.loadMore > 12 && (
+        <Button morePage={morePage} total={arrayImage[0].loadMore} />
+      )}
+      {status === 'idle' && <Idle />}
 
-        {status === 'pending' && <Spiner />}
+      {status === 'pending' && <Spiner />}
 
-        {status === 'rejected' && <Rejected error={error.message} />}
-      </div>
-    );
-  }
+      {status === 'rejected' && <Rejected error={error} />}
+    </div>
+  );
 }
 export default App;
